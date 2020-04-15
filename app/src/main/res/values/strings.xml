@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">MVVM DataBinding</string>
+    <string name="error_server">Server error</string>
+    <string name="auth_error">Auth error</string>
+    <string name="error_network_connection">ConnectionError</string>
+    <string name="file_reading_error">File reading error</string>
+    <string name="db_error">Database error</string>
+    <string name="unknown_error">Unknown error</string>
+    <string name="error">Error</string>
+    <string name="success">Success</string>
+    <string name="auth_success_message">Authorization was successful</string>
+    <string name="login">login</string>
+    <string name="password">password</string>
+    <string name="to_enter">enter</string>
+</resources>
