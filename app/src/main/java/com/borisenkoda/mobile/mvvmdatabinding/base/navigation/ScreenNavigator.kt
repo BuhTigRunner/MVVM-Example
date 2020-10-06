@@ -7,7 +7,7 @@ import com.borisenkoda.mobile.mvvmdatabinding.base.failure.FailureInterpreter
 
 interface ScreenNavigator {
     fun openAlertDialog(failure: Failure)
-    fun openSuccessDialog()
+    fun openSuccessDialog(okCallBack: () -> Unit)
 }
 
 class ScreenNavigatorImpl (
@@ -36,12 +36,14 @@ class ScreenNavigatorImpl (
 
     }
 
-    override fun openSuccessDialog() {
+    override fun openSuccessDialog(okCallBack: () -> Unit) {
         runOrPostpone {
             foregroundActivityProvider.getActivity()?.apply {
                 AlertDialog.Builder(this)
                     .setTitle(getString(R.string.success))
                     .setMessage(getString(R.string.auth_success_message))
+                    .setPositiveButton(android.R.string.ok
+                    ) { _, _ -> okCallBack() }
                     .show()
             }
         }

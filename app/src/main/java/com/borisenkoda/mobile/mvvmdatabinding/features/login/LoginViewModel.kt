@@ -49,7 +49,9 @@ class LoginViewModel(private val user: User, private val screenNavigator: Screen
                 }
             ) {
                 Logg.d { "auth success! thread: ${Thread.currentThread()}" }
-                screenNavigator.openSuccessDialog()
+                screenNavigator.openSuccessDialog {
+                    Logg.d { "auth success! ok handled" }
+                }
             }
         }
 

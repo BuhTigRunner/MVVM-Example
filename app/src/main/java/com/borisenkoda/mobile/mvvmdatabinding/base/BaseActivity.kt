@@ -14,7 +14,7 @@ abstract class BaseActivity<T : ViewDataBinding, S : BaseViewModel> : AppCompatA
 
     lateinit var vm: S
 
-    val foregroundActivityProvider = ForegroundActivityProvider.instance
+    private val foregroundActivityProvider = ForegroundActivityProvider.instance
 
 
     override fun onCreate(savedInstanceState: Bundle?) {

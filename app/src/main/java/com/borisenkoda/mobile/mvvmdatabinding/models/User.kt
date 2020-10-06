@@ -25,7 +25,7 @@ class UserTestImpl : User {
     override suspend fun login(login: String, password: String): Either<Failure, Nothing?> {
         _authState.postValue(IN_PROCESS)
         @Suppress("BlockingMethodInNonBlockingContext")
-        Thread.sleep(3000)
+        Thread.sleep(1000)
 
         Logg.d { "current thread: ${Thread.currentThread()}" }
 
