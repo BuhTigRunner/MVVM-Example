@@ -9,7 +9,7 @@ import com.borisenkoda.mobile.mvvmdatabinding.base.navigation.ScreenNavigatorImp
 import com.borisenkoda.mobile.mvvmdatabinding.models.UserTestImpl
 
 class LoginViewModelFactory(private val appContext: Context) : ViewModelProvider.Factory {
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
         @Suppress("UNCHECKED_CAST")
         return LoginViewModel(
             user = UserTestImpl.instance, screenNavigator = ScreenNavigatorImpl(
