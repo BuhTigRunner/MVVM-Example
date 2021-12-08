@@ -6,45 +6,47 @@ import com.borisenkoda.mobile.mvvmdatabinding.base.failure.Failure
 import com.borisenkoda.mobile.mvvmdatabinding.tools.Logg
 import com.borisenkoda.mobile.mvvmdatabinding.base.functional.Either
 import com.borisenkoda.mobile.mvvmdatabinding.models.AuthState.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlin.random.Random
 
 interface User {
-    fun authState(): LiveData<AuthState>
+    fun authState(): SharedFlow<AuthState>
     suspend fun login(login: String, password: String): Either<Failure, Nothing?>
 }
 
 class UserTestImpl : User {
 
-    private val _authState = MutableLiveData(NOT_AUTHORIZED)
+    private val _authState = MutableStateFlow(NOT_AUTHORIZED)
 
 
-    override fun authState(): LiveData<AuthState> {
+    override fun authState(): SharedFlow<AuthState> {
         return _authState
     }
 
     override suspend fun login(login: String, password: String): Either<Failure, Nothing?> {
-        _authState.postValue(IN_PROCESS)
+        _authState.emit(IN_PROCESS)
         @Suppress("BlockingMethodInNonBlockingContext")
-        Thread.sleep(1000)
+        Thread.sleep(3000)
 
         Logg.d { "current thread: ${Thread.currentThread()}" }
 
         return Random.nextInt(until = 3).let { random ->
             when (random) {
                 0 -> {
-                    _authState.postValue(AUTHORIZED)
+                    _authState.emit(AUTHORIZED)
                     Either.Right(null)
                 }
                 1 -> {
-                    _authState.postValue(NOT_AUTHORIZED)
+                    _authState.emit(NOT_AUTHORIZED)
                     Either.Left(Failure.ServerError)
                 }
                 2 -> {
-                    _authState.postValue(NOT_AUTHORIZED)
+                    _authState.emit(NOT_AUTHORIZED)
                     Either.Left(Failure.NetworkConnection)
                 }
                 else -> {
-                    _authState.postValue(NOT_AUTHORIZED)
+                    _authState.emit(NOT_AUTHORIZED)
                     Either.Left(Failure.AuthError)
                 }
             }

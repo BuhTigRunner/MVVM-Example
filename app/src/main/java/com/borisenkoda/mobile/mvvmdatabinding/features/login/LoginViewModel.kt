@@ -1,24 +1,24 @@
 package com.borisenkoda.mobile.mvvmdatabinding.features.login
 
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.borisenkoda.mobile.mvvmdatabinding.base.BaseViewModel
 import com.borisenkoda.mobile.mvvmdatabinding.tools.Logg
 import com.borisenkoda.mobile.mvvmdatabinding.tools.extentions.combineLatest
-import com.borisenkoda.mobile.mvvmdatabinding.tools.extentions.map
 import com.borisenkoda.mobile.mvvmdatabinding.base.navigation.ScreenNavigator
 import com.borisenkoda.mobile.mvvmdatabinding.models.AuthState
 import com.borisenkoda.mobile.mvvmdatabinding.models.User
+import com.borisenkoda.mobile.mvvmdatabinding.tools.extentions.map
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.map
 
 
 class LoginViewModel(private val user: User, private val screenNavigator: ScreenNavigator) :
     BaseViewModel() {
 
     val progressVisibility by lazy {
-        user.authState().map {
-            it == AuthState.IN_PROCESS
-        }
+        user.authState().map { it == AuthState.IN_PROCESS }.asLiveData()
     }
 
     val enabledEditText by lazy {
