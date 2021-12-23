@@ -12,10 +12,12 @@ class LoginViewModelFactory(private val appContext: Context) : ViewModelProvider
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         @Suppress("UNCHECKED_CAST")
         return LoginViewModel(
-            user = UserTestImpl.instance, screenNavigator = ScreenNavigatorImpl(
+            user = UserTestImpl.instance,
+            screenNavigator = ScreenNavigatorImpl(
                 foregroundActivityProvider = ForegroundActivityProvider.instance,
                 failureInterpreter = FailureInterpreterImpl(appContext)
-            )
+            ),
+            context = appContext
         ) as T
     }
 }

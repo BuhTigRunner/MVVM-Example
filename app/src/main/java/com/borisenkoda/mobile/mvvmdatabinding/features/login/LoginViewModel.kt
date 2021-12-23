@@ -1,5 +1,9 @@
 package com.borisenkoda.mobile.mvvmdatabinding.features.login
 
+import android.content.Context
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
+import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
@@ -14,8 +18,13 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.map
 
 
-class LoginViewModel(private val user: User, private val screenNavigator: ScreenNavigator) :
+class LoginViewModel(private val user: User, private val screenNavigator: ScreenNavigator, private val context: Context) :
     BaseViewModel() {
+
+    init {
+        Logg.d { "ss hasDeviceCredentialCapability: ${hasDeviceCredentialCapability(context)}" }
+        Logg.d { "ss hasBiometricWeakCapability: ${hasBiometricWeakCapability(context)}" }
+    }
 
     val progressVisibility by lazy {
         user.authState().map { it == AuthState.IN_PROCESS }.asLiveData()
@@ -39,7 +48,7 @@ class LoginViewModel(private val user: User, private val screenNavigator: Screen
 
     fun onClickEnter() {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
+            /*withContext(Dispatchers.IO) {
                 Logg.d { "current thread: ${Thread.currentThread()}" }
                 user.login(login.value!!, password.value!!)
             }.either(
@@ -52,7 +61,9 @@ class LoginViewModel(private val user: User, private val screenNavigator: Screen
                 screenNavigator.openSuccessDialog {
                     Logg.d { "auth success! ok handled" }
                 }
-            }
+            }*/
+
+            screenNavigator.openBiometric()
         }
 
 
@@ -61,6 +72,16 @@ class LoginViewModel(private val user: User, private val screenNavigator: Screen
     override fun onCleared() {
         super.onCleared()
         Logg.d { "onCleared()" }
+    }
+
+    fun hasDeviceCredentialCapability(context: Context): Int {
+        val biometricManager = BiometricManager.from(context)
+        return biometricManager.canAuthenticate(DEVICE_CREDENTIAL)
+    }
+
+    fun hasBiometricWeakCapability(context: Context): Int {
+        val biometricManager = BiometricManager.from(context)
+        return biometricManager.canAuthenticate(BIOMETRIC_WEAK)
     }
 
 

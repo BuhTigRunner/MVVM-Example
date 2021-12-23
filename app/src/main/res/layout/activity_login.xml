@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
 
@@ -26,31 +27,46 @@
                 android:orientation="vertical">
 
 
-                <EditText
-                    android:id="@+id/tv_login"
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_login"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginBottom="16dp"
-                    android:enabled="@{vm.enabledEditText}"
-                    android:hint="@string/login"
-                    android:imeOptions="actionNext"
-                    android:inputType="text"
-                    android:maxLines="1"
-                    android:nextFocusDown="@+id/tv_password"
-                    android:text="@={vm.login}"
-                    android:textSize="16sp" />
+                    android:layout_height="wrap_content">
 
-                <EditText
-                    android:id="@+id/tv_password"
+                    <EditText
+                        android:id="@+id/tv_login"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginBottom="16dp"
+                        android:enabled="@{vm.enabledEditText}"
+                        android:hint="@string/login"
+                        android:imeOptions="actionNext"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:nextFocusDown="@+id/tv_password"
+                        android:text="@={vm.login}"
+                        android:textSize="16sp"
+                        app:passwordToggleEnabled="true" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_password"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:enabled="@{vm.enabledEditText}"
-                    android:hint="@string/password"
-                    android:inputType="textPassword"
-                    android:text="@={vm.password}"
-                    android:textSize="16sp" />
+                    app:passwordToggleEnabled="true">
+
+                    <EditText
+                        android:id="@+id/tv_password"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:enabled="@{vm.enabledEditText}"
+                        android:hint="@string/password"
+                        android:inputType="textPassword"
+                        android:text="@={vm.password}"
+                        android:textSize="16sp" />
+
+                </com.google.android.material.textfield.TextInputLayout>
 
 
                 <Button
