@@ -1,6 +1,7 @@
 package com.borisenkoda.mobile.mvvmdatabinding.features.login
 
 import android.content.Context
+import android.os.Build
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
@@ -13,22 +14,55 @@ import com.borisenkoda.mobile.mvvmdatabinding.tools.extentions.combineLatest
 import com.borisenkoda.mobile.mvvmdatabinding.base.navigation.ScreenNavigator
 import com.borisenkoda.mobile.mvvmdatabinding.models.AuthState
 import com.borisenkoda.mobile.mvvmdatabinding.models.User
+import com.borisenkoda.mobile.mvvmdatabinding.tools.bioauth.BioAuthService
+import com.borisenkoda.mobile.mvvmdatabinding.tools.bioauth.BioAuthServiceImpl
 import com.borisenkoda.mobile.mvvmdatabinding.tools.extentions.map
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.map
 
 
-class LoginViewModel(private val user: User, private val screenNavigator: ScreenNavigator, private val context: Context) :
+class LoginViewModel(
+    private val user: User,
+    private val screenNavigator: ScreenNavigator,
+    private val context: Context
+) :
     BaseViewModel() {
 
-    init {
-        Logg.d { "ss hasDeviceCredentialCapability: ${hasDeviceCredentialCapability(context)}" }
-        Logg.d { "ss hasBiometricWeakCapability: ${hasBiometricWeakCapability(context)}" }
+
+    val bioAuthService: BioAuthService by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            BioAuthServiceImpl(context, screenNavigator)
+        } else {
+            object : BioAuthService {
+                override fun isAuthSettingsDone(): Boolean {
+                    return false
+                }
+
+                override fun isDeviceAuthAvailable(): Boolean {
+                    return false
+                }
+
+                override fun openLockScreenSettings() {
+                    TODO("Not yet implemented")
+                }
+
+                override fun openBioAuthSettings() {
+                    TODO("Not yet implemented")
+                }
+
+                override fun authRequest() {
+                    TODO("Not yet implemented")
+                }
+            }
+        }
     }
 
     val progressVisibility by lazy {
         user.authState().map { it == AuthState.IN_PROCESS }.asLiveData()
     }
+
+    val qrCodeChecked = MutableLiveData<Boolean>()
+    val qrButtonEnabled = MutableLiveData<Boolean>()
 
     val enabledEditText by lazy {
         progressVisibility.map {
@@ -46,9 +80,22 @@ class LoginViewModel(private val user: User, private val screenNavigator: Screen
         }
     }
 
+    init {
+        Logg.d { "ss hasDeviceCredentialCapability: ${hasDeviceCredentialCapability(context)}" }
+        Logg.d { "ss hasBiometricWeakCapability: ${hasBiometricWeakCapability(context)}" }
+        /*viewModelScope.launch {
+            bioAuthService.isAuthSettingsDone().also {
+                Logg.d { "isAuthSettingsDone: $it" }
+                qrCodeChecked.value = it
+                qrButtonEnabled.value = it
+            }
+        }*/
+
+    }
+
     fun onClickEnter() {
         viewModelScope.launch {
-            /*withContext(Dispatchers.IO) {
+            withContext(Dispatchers.IO) {
                 Logg.d { "current thread: ${Thread.currentThread()}" }
                 user.login(login.value!!, password.value!!)
             }.either(
@@ -61,12 +108,14 @@ class LoginViewModel(private val user: User, private val screenNavigator: Screen
                 screenNavigator.openSuccessDialog {
                     Logg.d { "auth success! ok handled" }
                 }
-            }*/
-
-            screenNavigator.openBiometric()
+            }
         }
 
 
+    }
+
+    fun onClickQr() {
+        bioAuthService.authRequest()
     }
 
     override fun onCleared() {
@@ -82,6 +131,35 @@ class LoginViewModel(private val user: User, private val screenNavigator: Screen
     fun hasBiometricWeakCapability(context: Context): Int {
         val biometricManager = BiometricManager.from(context)
         return biometricManager.canAuthenticate(BIOMETRIC_WEAK)
+    }
+
+    fun onQrCheckedChanged(isChecked: Boolean) {
+        Logg.d { "isChecked: $isChecked" }
+        viewModelScope.launch {
+            if (isChecked) {
+                delay(200)
+                qrButtonEnabled.value = bioAuthService.isAuthSettingsDone()
+                delay(200)
+                startBioAuth()
+            } else {
+                qrButtonEnabled.value = false
+            }
+        }
+
+    }
+
+    private fun startBioAuth() {
+        with(bioAuthService) {
+            if (isAuthSettingsDone()) {
+                authRequest()
+            } else {
+                if (isDeviceAuthAvailable()) {
+                    openBioAuthSettings()
+                } else {
+                    screenNavigator.showDeprecatedAndroidVersionError()
+                }
+            }
+        }
     }
 
 

@@ -1,33 +1,30 @@
 package com.borisenkoda.mobile.mvvmdatabinding.base.navigation
 
 import android.content.Intent
-import android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL
-import android.provider.Settings.ACTION_BIOMETRIC_ENROLL
-import android.provider.Settings.EXTRA_BIOMETRIC_AUTHENTICATORS_ALLOWED
-import android.util.Log
 import androidx.appcompat.app.AlertDialog
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import com.borisenkoda.mobile.mvvmdatabinding.R
 import com.borisenkoda.mobile.mvvmdatabinding.base.failure.Failure
 import com.borisenkoda.mobile.mvvmdatabinding.base.failure.FailureInterpreter
-import androidx.core.content.ContextCompat.startActivity
-
-import android.app.admin.DevicePolicyManager
-import android.widget.Toast
+import android.content.Context
+import android.os.Build
+import android.provider.Settings.*
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
-import java.util.concurrent.Executor
+import androidx.security.crypto.EncryptedSharedPreferences
+import com.borisenkoda.mobile.mvvmdatabinding.tools.Logg
+import java.lang.System
 
 
 interface ScreenNavigator {
     fun openAlertDialog(failure: Failure)
     fun openSuccessDialog(okCallBack: () -> Unit)
-    fun openBiometric()
+    fun openBiometricSettings()
+    fun openBiometricAuth(masterKey: String)
+    fun openLockScreenSettings()
+    fun showDeprecatedAndroidVersionError()
 }
 
-class ScreenNavigatorImpl (
+class ScreenNavigatorImpl(
     private val foregroundActivityProvider: ForegroundActivityProvider,
     private val failureInterpreter: FailureInterpreter
 ) : ScreenNavigator {
@@ -53,13 +50,25 @@ class ScreenNavigatorImpl (
 
     }
 
+    override fun showDeprecatedAndroidVersionError() {
+        runOrPostpone {
+            foregroundActivityProvider.getActivity()?.apply {
+                AlertDialog.Builder(this)
+                    .setTitle(getString(R.string.error))
+                    .setMessage("Для активации функции необходима версия Android 6.0 или выше")
+                    .show()
+            }
+        }
+    }
+
     override fun openSuccessDialog(okCallBack: () -> Unit) {
         runOrPostpone {
             foregroundActivityProvider.getActivity()?.apply {
                 AlertDialog.Builder(this)
                     .setTitle(getString(R.string.success))
                     .setMessage(getString(R.string.auth_success_message))
-                    .setPositiveButton(android.R.string.ok
+                    .setPositiveButton(
+                        android.R.string.ok
                     ) { _, _ -> okCallBack() }
                     .show()
             }
@@ -67,69 +76,80 @@ class ScreenNavigatorImpl (
 
     }
 
-    override fun openBiometric() {
+
+    override fun openBiometricSettings() {
         runOrPostpone {
             foregroundActivityProvider.getActivity()?.apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    startActivity(Intent(ACTION_BIOMETRIC_ENROLL))
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    startActivity(Intent(ACTION_FINGERPRINT_ENROLL))
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    startActivity(Intent(ACTION_SECURITY_SETTINGS))
+                }
+            }
+        }
+    }
 
-                /*val biometricManager = BiometricManager.from(this)
-                when (biometricManager.canAuthenticate(BIOMETRIC_WEAK or DEVICE_CREDENTIAL)) {
-                    BiometricManager.BIOMETRIC_SUCCESS ->
-                        Log.d("MY_APP_TAG", "App can authenticate using biometrics.")
-                    BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
-                        Log.e("MY_APP_TAG", "No biometric features available on this device.")
-                    BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
-                        Log.e("MY_APP_TAG", "Biometric features are currently unavailable.")
-                    BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
-                        // Prompts the user to create credentials that your app accepts.
-                        val enrollIntent = Intent(ACTION_BIOMETRIC_ENROLL).apply {
-                            putExtra(EXTRA_BIOMETRIC_AUTHENTICATORS_ALLOWED,
-                                BIOMETRIC_STRONG or DEVICE_CREDENTIAL)
-                        }
-                        startActivityForResult(enrollIntent, 100)
-                    }
-                }*/
-
-                /*val intent = Intent(DevicePolicyManager.ACTION_SET_NEW_PASSWORD)
-                this.startActivity(intent)*/
-
-                var executor: Executor
-                var biometricPrompt: BiometricPrompt
-                var promptInfo: BiometricPrompt.PromptInfo
-
-                executor = ContextCompat.getMainExecutor(this)
-                biometricPrompt = BiometricPrompt(this, executor,
+    override fun openBiometricAuth(masterKey: String) {
+        runOrPostpone {
+            foregroundActivityProvider.getActivity()?.apply {
+                val prompt = BiometricPrompt(
+                    this,
+                    ContextCompat.getMainExecutor(this),
                     object : BiometricPrompt.AuthenticationCallback() {
-                        override fun onAuthenticationError(errorCode: Int,
-                                                           errString: CharSequence) {
+                        // override the required methods...
+                        override fun onAuthenticationError(
+                            errorCode: Int,
+                            errString: CharSequence
+                        ) {
                             super.onAuthenticationError(errorCode, errString)
-                            Toast.makeText(applicationContext,
-                                "Authentication error: $errString", Toast.LENGTH_SHORT)
-                                .show()
+                            Logg.w { "onAuthenticationError $errorCode $errString" }
                         }
 
-                        override fun onAuthenticationSucceeded(
-                            result: BiometricPrompt.AuthenticationResult) {
+                        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                             super.onAuthenticationSucceeded(result)
-                            Toast.makeText(applicationContext,
-                                "Authentication succeeded!", Toast.LENGTH_SHORT)
-                                .show()
+                            Logg.d { "onAuthenticationSucceeded " + result.cryptoObject }
+                            // now it's safe to init the signature using the password key
+                            //decrypt(signature, keyEntry.privateKey)
+                            decrypt(this@apply, masterKey)
                         }
 
                         override fun onAuthenticationFailed() {
                             super.onAuthenticationFailed()
-                            Toast.makeText(applicationContext, "Authentication failed",
-                                Toast.LENGTH_SHORT)
-                                .show()
+                            Logg.w { "onAuthenticationFailed" }
                         }
                     })
-
-                promptInfo = BiometricPrompt.PromptInfo.Builder()
-                    .setTitle("Biometric login for my app")
-                    .setSubtitle("Log in using your biometric credential")
-                    .setAllowedAuthenticators(BIOMETRIC_WEAK or DEVICE_CREDENTIAL)
+                val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Разблокируйте устройство")
+                    .setSubtitle("Пожалуйста, введите код для продолжения")
+                    .setDeviceCredentialAllowed(true)
                     .build()
+                prompt.authenticate(promptInfo)
+            }
+        }
+    }
 
-                biometricPrompt.authenticate(promptInfo)
+    private fun decrypt(context: Context, masterKey: String) {
+        val securedSharedPrefsPasVers = EncryptedSharedPreferences.create(
+            "values_secured",   //xml file name
+            masterKey,   //master key
+            context,   //context
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,  //key encryption technique
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM //value encryption technique
+        )
+
+        Logg.d { "sigStr last value: " + securedSharedPrefsPasVers.getString("key", "nothing") }
+        securedSharedPrefsPasVers.edit().apply {
+            putString("key", "last time: ${System.currentTimeMillis().toString()}")
+        }.apply()
+
+    }
+
+    override fun openLockScreenSettings() {
+        runOrPostpone {
+            foregroundActivityProvider.getActivity()?.apply {
+                startActivity(Intent(ACTION_SECURITY_SETTINGS))
             }
         }
     }
