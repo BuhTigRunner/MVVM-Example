@@ -43,26 +43,29 @@ class LoginViewModel(
                 }
 
                 override fun openLockScreenSettings() {
-                    TODO("Not yet implemented")
+                    // do nothing
                 }
 
                 override fun openBioAuthSettings() {
-                    TODO("Not yet implemented")
+                    // do nothing
                 }
 
                 override fun authRequest(okCallBack: () -> Unit) {
-                    TODO("Not yet implemented")
+                    // do nothing
                 }
 
                 override fun readValue(key: String): String? {
-                    TODO("Not yet implemented")
+                    return null
                 }
 
                 override fun writeValue(key: String, value: String): Boolean {
-                    TODO("Not yet implemented")
+                    // do nothing
+                    return false
                 }
 
-
+                override fun isBioAuthAvailable(): Boolean {
+                    return false
+                }
             }
         }
     }
@@ -178,7 +181,16 @@ class LoginViewModel(
         with(bioAuthService) {
             if (!isAuthSettingsDone()) {
                 if (isDeviceAuthAvailable()) {
-                    openBioAuthSettings()
+                    screenNavigator.openMessageDialog(
+                        title = "Настройка безопасности",
+                        message = if (isBioAuthAvailable())
+                            "Пожалуйста, настройте биоаутентификацию для безопасного хранения данных"
+                        else
+                            "Пожалуйста, настройте защиту доступа к устройству для безопасного хранения данных",
+                        okCallBack = {
+                            openBioAuthSettings()
+                        }
+                    )
                 } else {
                     screenNavigator.showDeprecatedAndroidVersionError()
                 }

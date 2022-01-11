@@ -22,6 +22,7 @@ import java.security.KeyStore
 interface BioAuthService {
     fun isAuthSettingsDone(): Boolean
     fun isDeviceAuthAvailable(): Boolean
+    fun isBioAuthAvailable(): Boolean
     fun openLockScreenSettings()
     fun openBioAuthSettings()
     fun authRequest(okCallBack: () -> Unit)
@@ -46,27 +47,28 @@ class BioAuthServiceImpl(
         context.getSystemService(KEYGUARD_SERVICE) as KeyguardManager
     }
 
-    private val keyGenParameterSpec by lazy {
-        KeyGenParameterSpec.Builder(
-            "key_alias_1",
-            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-        ).apply {
-            setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-            setKeySize(256)
-            setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-            setUserAuthenticationRequired(true)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                setUserConfirmationRequired(true)
-            }
-            val timeoutInSec = 10
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) setUserAuthenticationParameters(
-                timeoutInSec,
-                KeyProperties.AUTH_DEVICE_CREDENTIAL or KeyProperties.AUTH_BIOMETRIC_STRONG
-            ) else {
-                setUserAuthenticationValidityDurationSeconds(timeoutInSec)
-            }
-        }.build()
-    }
+    private val keyGenParameterSpec: KeyGenParameterSpec
+        get() {
+            return KeyGenParameterSpec.Builder(
+                "key_alias_2",
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+            ).apply {
+                setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                setKeySize(256)
+                setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                setUserAuthenticationRequired(true)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    setUserConfirmationRequired(true)
+                }
+                val timeoutInSec = 5
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) setUserAuthenticationParameters(
+                    timeoutInSec,
+                    KeyProperties.AUTH_DEVICE_CREDENTIAL or KeyProperties.AUTH_BIOMETRIC_STRONG
+                ) else {
+                    setUserAuthenticationValidityDurationSeconds(timeoutInSec)
+                }
+            }.build()
+        }
 
     private val masterKey: String by lazy {
         MasterKeys.getOrCreate(keyGenParameterSpec)
@@ -91,6 +93,10 @@ class BioAuthServiceImpl(
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
     }
 
+    override fun isBioAuthAvailable(): Boolean {
+        return biometricManager.canAuthenticate(BIOMETRIC_STRONG) == BIOMETRIC_ERROR_NONE_ENROLLED
+    }
+
     override fun openLockScreenSettings() {
         screenNavigator.openLockScreenSettings()
     }
@@ -112,6 +118,7 @@ class BioAuthServiceImpl(
             getSecuredSharedPrefs().edit().putString(key, value).apply()
             true
         } catch (e: Exception) {
+            Logg.e { "writeValue exception: $e" }
             false
         }
     }
@@ -140,10 +147,27 @@ class BioAuthServiceImpl(
     }
 
     private fun deleteKeyStore() {
-        KeyStore.getInstance("AndroidKeyStore").also {
-            it.load(null)
-            it.deleteEntry(masterKey)
+        try {
+            KeyStore.getInstance("AndroidKeyStore").also { keyStore ->
+                keyStore.load(null)
+                Logg.d { "aliases: ${keyStore.aliases().toList()}" }
+                keyStore.aliases().toList().onEach { alias ->
+                    Logg.d {
+                        "aliases is PrivateKeyEntry: ${
+                            keyStore.getEntry(
+                                alias,
+                                null
+                            ) !is KeyStore.PrivateKeyEntry
+                        }"
+                    }
+                }
+                keyStore.deleteEntry(masterKey)
+            }
+        } catch (e: Exception) {
+            //TODO need to change masterKey if delete is failed
+            Logg.e { "deleteKeyStore error: $e, cause: ${e.cause}" }
         }
+
     }
 
     private fun deletePreferences() {

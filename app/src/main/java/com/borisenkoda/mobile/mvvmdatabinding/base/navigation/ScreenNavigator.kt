@@ -14,6 +14,7 @@ import com.borisenkoda.mobile.mvvmdatabinding.tools.Logg
 
 interface ScreenNavigator {
     fun openAlertDialog(failure: Failure)
+    fun openMessageDialog(title: String, message: String, okCallBack: () -> Unit)
     fun openSuccessDialog(okCallBack: () -> Unit)
     fun openBiometricSettings()
     fun openBiometricAuth(okCallBack: () -> Unit)
@@ -127,6 +128,19 @@ class ScreenNavigatorImpl(
         }
     }
 
+    override fun openMessageDialog(title: String, message: String, okCallBack: () -> Unit) {
+        runOrPostpone {
+            foregroundActivityProvider.getActivity()?.apply {
+                AlertDialog.Builder(this)
+                    .setTitle(title)
+                    .setMessage(message)
+                    .setPositiveButton(
+                        android.R.string.ok
+                    ) { _, _ -> okCallBack() }
+                    .show()
+            }
+        }
+    }
 
 
     override fun openLockScreenSettings() {
