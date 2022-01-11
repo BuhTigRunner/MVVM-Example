@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">MVVM DataBinding</string>
+    <string name="app_name">Safe storage</string>
     <string name="error_server">Server error</string>
     <string name="auth_error">Auth error</string>
     <string name="error_network_connection">ConnectionError</string>

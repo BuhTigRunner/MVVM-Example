@@ -50,9 +50,19 @@ class LoginViewModel(
                     TODO("Not yet implemented")
                 }
 
-                override fun authRequest() {
+                override fun authRequest(okCallBack: () -> Unit) {
                     TODO("Not yet implemented")
                 }
+
+                override fun readValue(key: String): String? {
+                    TODO("Not yet implemented")
+                }
+
+                override fun writeValue(key: String, value: String): Boolean {
+                    TODO("Not yet implemented")
+                }
+
+
             }
         }
     }
@@ -63,6 +73,7 @@ class LoginViewModel(
 
     val qrCodeChecked = MutableLiveData<Boolean>()
     val qrButtonEnabled = MutableLiveData<Boolean>()
+    val saveSecretButtonEnabled = qrButtonEnabled.map { it }
 
     val enabledEditText by lazy {
         progressVisibility.map {
@@ -73,6 +84,8 @@ class LoginViewModel(
     val login = MutableLiveData<String>()
 
     val password = MutableLiveData<String>()
+
+    val secret = MutableLiveData<String>()
 
     val enterEnabled by lazy {
         login.combineLatest(password).combineLatest(progressVisibility).map {
@@ -115,7 +128,22 @@ class LoginViewModel(
     }
 
     fun onClickQr() {
-        bioAuthService.authRequest()
+        with(bioAuthService) {
+            authRequest {
+                readValue("key").also {
+                    secret.value = it
+                }
+            }
+        }
+    }
+
+    fun onClickSaveSecret() {
+        with(bioAuthService) {
+            authRequest {
+                writeValue("key", secret.value ?: "")
+                secret.value = ""
+            }
+        }
     }
 
     override fun onCleared() {
@@ -137,10 +165,8 @@ class LoginViewModel(
         Logg.d { "isChecked: $isChecked" }
         viewModelScope.launch {
             if (isChecked) {
-                delay(200)
                 qrButtonEnabled.value = bioAuthService.isAuthSettingsDone()
-                delay(200)
-                startBioAuth()
+                prepareBioAuth()
             } else {
                 qrButtonEnabled.value = false
             }
@@ -148,11 +174,9 @@ class LoginViewModel(
 
     }
 
-    private fun startBioAuth() {
+    private fun prepareBioAuth() {
         with(bioAuthService) {
-            if (isAuthSettingsDone()) {
-                authRequest()
-            } else {
+            if (!isAuthSettingsDone()) {
                 if (isDeviceAuthAvailable()) {
                     openBioAuthSettings()
                 } else {

@@ -31,6 +31,7 @@
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_login"
+                    android:visibility="gone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
 
@@ -53,6 +54,7 @@
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/til_password"
+                    android:visibility="gone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:passwordToggleEnabled="true">
@@ -70,6 +72,24 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_secret"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:passwordToggleEnabled="true">
+
+                    <EditText
+                        android:id="@+id/tv_secret"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:hint="Секрет"
+                        android:inputType="textPassword"
+                        android:text="@={vm.secret}"
+                        android:textSize="16sp" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
 
                 <Button
                     android:id="@+id/b_enter"
@@ -80,6 +100,7 @@
                     android:layout_marginTop="32dp"
                     android:layout_marginRight="32dp"
                     android:layout_marginBottom="16dp"
+                    android:visibility="gone"
                     android:enabled="@{vm.enterEnabled}"
                     android:onClick="@{() -> vm.onClickEnter()}"
                     android:text="@string/to_enter" />
@@ -93,17 +114,27 @@
                     android:text="Получение по QR-коду" />
 
                 <Button
+                    android:id="@+id/b_save_secret"
+                    android:layout_width="200dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginLeft="32dp"
+                    android:layout_marginRight="32dp"
+                    android:visibility="@{vm.saveSecretButtonEnabled}"
+                    android:onClick="@{() -> vm.onClickSaveSecret()}"
+                    android:text="Спрятать секрет" />
+
+                <Button
                     android:id="@+id/b_qr"
                     android:layout_width="200dp"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:layout_marginLeft="32dp"
-                    android:layout_marginTop="32dp"
+                    android:layout_marginTop="16dp"
                     android:layout_marginRight="32dp"
-                    android:layout_marginBottom="16dp"
                     android:visibility="@{vm.qrButtonEnabled}"
                     android:onClick="@{() -> vm.onClickQr()}"
-                    android:text="QR-код" />
+                    android:text="Получить секрет" />
 
 
             </LinearLayout>

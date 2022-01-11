@@ -3,21 +3,27 @@ package com.borisenkoda.mobile.mvvmdatabinding.tools.bioauth
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.Context.KEYGUARD_SERVICE
+import android.content.SharedPreferences
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import androidx.annotation.RequiresApi
 import androidx.biometric.BiometricManager.Authenticators.*
 import androidx.biometric.BiometricManager.*
+import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import com.borisenkoda.mobile.mvvmdatabinding.base.navigation.ScreenNavigator
+import com.borisenkoda.mobile.mvvmdatabinding.tools.Logg
+import java.lang.Exception
 
 interface BioAuthService {
     fun isAuthSettingsDone(): Boolean
     fun isDeviceAuthAvailable(): Boolean
     fun openLockScreenSettings()
     fun openBioAuthSettings()
-    fun authRequest()
+    fun authRequest(okCallBack: () -> Unit)
+    fun readValue(key: String): String?
+    fun writeValue(key: String, value: String): Boolean
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
@@ -82,9 +88,31 @@ class BioAuthServiceImpl(
         screenNavigator.openBiometricSettings()
     }
 
-    override fun authRequest() {
-        screenNavigator.openBiometricAuth(masterKey)
+    override fun authRequest(okCallBack: () -> Unit) {
+        screenNavigator.openBiometricAuth(okCallBack)
     }
 
+    override fun readValue(key: String): String? {
+        return getSecuredSharedPrefs().getString(key, null)
+    }
+
+    override fun writeValue(key: String, value: String): Boolean {
+        return try {
+            getSecuredSharedPrefs().edit().putString(key, value).apply()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun getSecuredSharedPrefs(): SharedPreferences {
+        return EncryptedSharedPreferences.create(
+            "qr_settings",   //xml file name
+            masterKey,   //master key
+            context,   //context
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,  //key encryption technique
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM //value encryption technique
+        )
+    }
 }
 

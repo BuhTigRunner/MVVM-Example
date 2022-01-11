@@ -5,21 +5,18 @@ import androidx.appcompat.app.AlertDialog
 import com.borisenkoda.mobile.mvvmdatabinding.R
 import com.borisenkoda.mobile.mvvmdatabinding.base.failure.Failure
 import com.borisenkoda.mobile.mvvmdatabinding.base.failure.FailureInterpreter
-import android.content.Context
 import android.os.Build
 import android.provider.Settings.*
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
-import androidx.security.crypto.EncryptedSharedPreferences
 import com.borisenkoda.mobile.mvvmdatabinding.tools.Logg
-import java.lang.System
 
 
 interface ScreenNavigator {
     fun openAlertDialog(failure: Failure)
     fun openSuccessDialog(okCallBack: () -> Unit)
     fun openBiometricSettings()
-    fun openBiometricAuth(masterKey: String)
+    fun openBiometricAuth(okCallBack: () -> Unit)
     fun openLockScreenSettings()
     fun showDeprecatedAndroidVersionError()
 }
@@ -91,7 +88,7 @@ class ScreenNavigatorImpl(
         }
     }
 
-    override fun openBiometricAuth(masterKey: String) {
+    override fun openBiometricAuth(okCallBack: () -> Unit) {
         runOrPostpone {
             foregroundActivityProvider.getActivity()?.apply {
                 val prompt = BiometricPrompt(
@@ -109,10 +106,10 @@ class ScreenNavigatorImpl(
 
                         override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                             super.onAuthenticationSucceeded(result)
+                            okCallBack()
                             Logg.d { "onAuthenticationSucceeded " + result.cryptoObject }
                             // now it's safe to init the signature using the password key
                             //decrypt(signature, keyEntry.privateKey)
-                            decrypt(this@apply, masterKey)
                         }
 
                         override fun onAuthenticationFailed() {
@@ -130,21 +127,7 @@ class ScreenNavigatorImpl(
         }
     }
 
-    private fun decrypt(context: Context, masterKey: String) {
-        val securedSharedPrefsPasVers = EncryptedSharedPreferences.create(
-            "values_secured",   //xml file name
-            masterKey,   //master key
-            context,   //context
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,  //key encryption technique
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM //value encryption technique
-        )
 
-        Logg.d { "sigStr last value: " + securedSharedPrefsPasVers.getString("key", "nothing") }
-        securedSharedPrefsPasVers.edit().apply {
-            putString("key", "last time: ${System.currentTimeMillis().toString()}")
-        }.apply()
-
-    }
 
     override fun openLockScreenSettings() {
         runOrPostpone {
