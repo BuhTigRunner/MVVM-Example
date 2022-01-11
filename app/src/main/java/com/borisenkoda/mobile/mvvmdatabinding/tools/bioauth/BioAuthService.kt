@@ -15,6 +15,9 @@ import androidx.security.crypto.MasterKeys
 import com.borisenkoda.mobile.mvvmdatabinding.base.navigation.ScreenNavigator
 import com.borisenkoda.mobile.mvvmdatabinding.tools.Logg
 import java.lang.Exception
+import java.io.File
+import java.security.KeyStore
+
 
 interface BioAuthService {
     fun isAuthSettingsDone(): Boolean
@@ -26,11 +29,14 @@ interface BioAuthService {
     fun writeValue(key: String, value: String): Boolean
 }
 
+private const val FILE_SETTINGS_NAME: String = "qr_settings"
+
 @RequiresApi(Build.VERSION_CODES.M)
 class BioAuthServiceImpl(
     private val context: Context,
     private val screenNavigator: ScreenNavigator
 ) : BioAuthService {
+
 
     private val biometricManager by lazy {
         from(context)
@@ -40,25 +46,30 @@ class BioAuthServiceImpl(
         context.getSystemService(KEYGUARD_SERVICE) as KeyguardManager
     }
 
-    private val masterKey by lazy {
-        MasterKeys.getOrCreate(
-            KeyGenParameterSpec.Builder(
-                "key_alias_1",
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-            ).apply {
-                setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                setKeySize(256)
-                setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                setUserAuthenticationRequired(true)
-                val timeoutInSec = 10
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) setUserAuthenticationParameters(
-                    timeoutInSec,
-                    KeyProperties.AUTH_DEVICE_CREDENTIAL or KeyProperties.AUTH_BIOMETRIC_STRONG
-                ) else {
-                    setUserAuthenticationValidityDurationSeconds(timeoutInSec)
-                }
-            }.build()
-        )
+    private val keyGenParameterSpec by lazy {
+        KeyGenParameterSpec.Builder(
+            "key_alias_1",
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+        ).apply {
+            setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            setKeySize(256)
+            setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+            setUserAuthenticationRequired(true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                setUserConfirmationRequired(true)
+            }
+            val timeoutInSec = 10
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) setUserAuthenticationParameters(
+                timeoutInSec,
+                KeyProperties.AUTH_DEVICE_CREDENTIAL or KeyProperties.AUTH_BIOMETRIC_STRONG
+            ) else {
+                setUserAuthenticationValidityDurationSeconds(timeoutInSec)
+            }
+        }.build()
+    }
+
+    private val masterKey: String by lazy {
+        MasterKeys.getOrCreate(keyGenParameterSpec)
     }
 
     override fun isAuthSettingsDone(): Boolean {
@@ -106,13 +117,39 @@ class BioAuthServiceImpl(
     }
 
     private fun getSecuredSharedPrefs(): SharedPreferences {
-        return EncryptedSharedPreferences.create(
-            "qr_settings",   //xml file name
-            masterKey,   //master key
-            context,   //context
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,  //key encryption technique
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM //value encryption technique
-        )
+        return try {
+            EncryptedSharedPreferences.create(
+                FILE_SETTINGS_NAME,   //xml file name
+                masterKey,   //master key
+                context,   //context
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,  //key encryption technique
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM //value encryption technique
+            )
+        } catch (e: Exception) {
+            Logg.e { "getSecuredSharedPrefs error: $e" }
+            deletePreferences()
+            deleteKeyStore()
+            EncryptedSharedPreferences.create(
+                FILE_SETTINGS_NAME,   //xml file name
+                masterKey,   //master key
+                context,   //context
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,  //key encryption technique
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM //value encryption technique
+            )
+        }
+    }
+
+    private fun deleteKeyStore() {
+        KeyStore.getInstance("AndroidKeyStore").also {
+            it.load(null)
+            it.deleteEntry(masterKey)
+        }
+    }
+
+    private fun deletePreferences() {
+        val filePath = "${context.filesDir.parent}/shared_prefs/$FILE_SETTINGS_NAME.xml"
+        val deletePrefFile = File(filePath)
+        deletePrefFile.delete()
     }
 }
 

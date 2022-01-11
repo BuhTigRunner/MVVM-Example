@@ -111,7 +111,7 @@
                     android:layout_marginVertical="32dp"
                     android:checked="@={vm.qrCodeChecked}"
                     android:onCheckedChanged="@{(switch, checked) -> vm.onQrCheckedChanged(checked)}"
-                    android:text="Получение по QR-коду" />
+                    android:text="Включить безопасное шифрование" />
 
                 <Button
                     android:id="@+id/b_save_secret"
@@ -122,7 +122,7 @@
                     android:layout_marginRight="32dp"
                     android:visibility="@{vm.saveSecretButtonEnabled}"
                     android:onClick="@{() -> vm.onClickSaveSecret()}"
-                    android:text="Спрятать секрет" />
+                    android:text="Зашифровать секрет" />
 
                 <Button
                     android:id="@+id/b_qr"
@@ -134,7 +134,7 @@
                     android:layout_marginRight="32dp"
                     android:visibility="@{vm.qrButtonEnabled}"
                     android:onClick="@{() -> vm.onClickQr()}"
-                    android:text="Получить секрет" />
+                    android:text="Расшифровать секрет" />
 
 
             </LinearLayout>
