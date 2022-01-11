@@ -119,8 +119,8 @@ class ScreenNavigatorImpl(
                         }
                     })
                 val promptInfo = BiometricPrompt.PromptInfo.Builder()
-                    .setTitle("Разблокируйте устройство")
-                    .setSubtitle("Пожалуйста, введите код для продолжения")
+                    .setTitle("Подтверждение")
+                    .setSubtitle("Пожалуйста, подтвердите свою личность")
                     .setDeviceCredentialAllowed(true)
                     .build()
                 prompt.authenticate(promptInfo)
